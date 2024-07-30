@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Price Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .autocomplete-suggestions {
+            border: 1px solid #ccc;
+            border-top: none;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .autocomplete-suggestion {
+            padding: 10px;
+            cursor: pointer;
+            background-color: #fff;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #e9e9e9;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+        }
+
+        .prediction {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var manufacturers = ['יונדאי', 'ניסאן', 'סוזוקי', 'טויוטה', 'קיה', 'אאודי', 'סובארו',
+                'מיצובישי', 'מרצדס', 'ב.מ.וו', 'אופל', 'הונדה', 'פולקסווגן',
+                'שברולט', 'מאזדה', 'וולוו', 'סקודה', 'פורד', 'קרייזלר',
+                'סיטרואן', "פיג'ו", 'רנו', 'לקסוס', 'דייהטסו', 'מיני', 'טסלה',
+                'אלפא רומיאו'];
+
+            var models = {
+                'יונדאי': ['i30', 'i20', 'i10', 'סונטה', 'אלנטרה', 'i40', 'איוניק', 'קופה', 'ולוסטר', 'i35', "טרג'ט", 'i30cw', 'i25',"אחר"],
+                'ניסאן': ['מיקרה', 'סנטרה', 'קווסט', 'אלתימה', 'נוט', 'אלמרה', 'מקסימה', 'פרימרה', "ג'וק","אחר"],
+                'סוזוקי': ['סלריו', 'ספלאש', 'סוויפט', 'בלנו', 'סדן', 'sx4', 'אלטו', 'איגניס',"אחר"],
+                'טויוטה': ['קאמרי', 'ספייס', 'קורולה', 'אוריס', 'יאריס', 'ורסו', 'אונסיס', 'c-hr', 'אוונסיס', 'פריוס',"אחר"],
+                'קיה': ['פיקנטו', 'סיד', 'פורטה', 'ריו', 'סראטו', 'סול', 'סטוניק', 'נירו', 'xceed', 'קרניבל', 'פרייד', 'ספיה',"אחר"],
+                'אאודי': ['q3', 'a3', 'a6', 's3', 'a4', 'all road', 'a5', 'a1', 's7', 's5', 'r8', 'rs5',"אחר"],
+                'סובארו': ['b3', 'b4', 'xv', 'svx', 'אאוטבק', 'אימפרזה', 'לאונה',"אחר"],
+                'מיצובישי': ['i-miev', 'אקליפס', 'לנסר ספורטבק', 'asx', 'גרנדיס', 'אאוטלנדר', 'gt3000', "אטראז'", 'לנסר הדור', 'ספייס סטאר', 'לנסר',"אחר"],
+                'מרצדס': ['e-class', 's-class', 'clk', 'c-class', '320', '220', 'v- class', 'slk', '200',"אחר"],
+                'ב.מ.וו': ['316', '1', '120i', '3', '530', '325', '523', '5', '525', '318', '320', 'm1', 'x1',"אחר"],
+                'אופל': ['אסטרה', 'קורסה', 'אינסיגניה', 'מריבה', 'זאפירה', 'אדם', 'מוקה',"אחר"],
+                'הונדה': ['accord', 'ג`אז', "ג'אז", 'אודסיי', 'insight', 'לג`נד', 'סיוויק', 'fr-v', 'האצ`בק', 'אינסייט',"אחר"],
+                'פולקסווגן': ['פולו', 'שירוקו', 'חיפושית', 'caddy combi', 'גולף gti', 'טוראן', 'פאסאט cc', 'פאסאט', 'ג`טה', 'גולף', "ג'טה", 'גולף פלוס',"אחר"],
+                'שברולט': ['סלבריטי', 'אימפלה', 'מאליבו', 'טראקס', 'קרוז', 'אורלנדו', 'קורבט', 'קורסיקה', 'אקווינוקס', 'סוניק', 'אוואו', 'ספארק', 'אפלנדר',"אחר"],
+                'מאזדה': ['5', '3', '2', '6',"אחר"],
+                'וולוו': ['v40 cc', 's80', 'c30', 'v40', 's60',"אחר"],
+                'סקודה': ['ראפיד ספייסבק', 'פאביה', 'ייטי', 'אוקטביה rs', 'רומסטר', 'אוקטביה קומבי', 'פאביה ספייס', 'אוקטביה ספייס', 'סופרב', 'אוקטביה', 'סיטיגו / citygo', 'ראפיד',"אחר"],
+                'פורד': ['קונקט', 'פיאסטה', 'אס-מקס', 'גלאקסי', 'מוסטנג', 'פוקוס',"אחר"],
+                'לקסוס': ['gs300', 'is300h', 'ct200h', 'rc', 'is250',"אחר"],
+                'קרייזלר': ['300c', "גראנד וויאג'ר","אחר"],
+                'סיטרואן': ['c1', 'c4', 'c3', 'ax', 'c5', 'ds3', 'cx',"אחר"],
+                "פיג'ו": ['2008', '301', '208', '5008', '106', '308', 'rcz', '307cc', '508', '108',"אחר"],
+                'רנו': ['גרנד סניק', 'קליאו דור 4', 'פלואנס', 'מגאן אסטייט / גראנד טור', 'קליאו', 'קליאו אסטייט', '25', 'קפצ`ור', 'פלואנס חשמלי',"אחר"],
+                'דייהטסו': ['טריוס', 'שרמנט', 'סיריון',"אחר"],
+                'מיני': ['one', 'קופר', 'קאנטרימן',"אחר"],
+                'אלפא רומיאו': ['מיטו', '159',"אחר"]
+            };
+
+            var manufactorInput = document.getElementById('manufactor');
+            var modelInputContainer = document.getElementById('modelInputContainer');
+            var modelInput = document.getElementById('model');
+            var suggestionsContainer = document.createElement('div');
+            suggestionsContainer.classList.add('autocomplete-suggestions');
+            manufactorInput.parentNode.appendChild(suggestionsContainer);
+            var errorMessage = document.getElementById('error-message');
+
+            manufactorInput.addEventListener('input', function () {
+                var inputValue = manufactorInput.value;
+                suggestionsContainer.innerHTML = '';
+                modelInputContainer.classList.remove('hidden');
+                modelInput.innerHTML = '<option value="">You did not choose a proper manufacturer</option>';
+                errorMessage.textContent = '';
+
+                if (inputValue) {
+                    manufacturers.forEach(function (manufacturer) {
+                        if (manufacturer.includes(inputValue)) {
+                            var suggestion = document.createElement('div');
+                            suggestion.classList.add('autocomplete-suggestion');
+                            suggestion.textContent = manufacturer;
+                            suggestion.addEventListener('click', function () {
+                                manufactorInput.value = manufacturer;
+                                suggestionsContainer.innerHTML = '';
+
+                                // Populate model options
+                                modelInput.innerHTML = '<option value="">בחר דגם</option>';
+                                models[manufacturer].forEach(function (model) {
+                                    var option = document.createElement('option');
+                                    option.value = model;
+                                    option.textContent = model;
+                                    modelInput.appendChild(option);
+                                });
+                            });
+                            suggestionsContainer.appendChild(suggestion);
+                        }
+                    });
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (e.target !== manufactorInput) {
+                    suggestionsContainer.innerHTML = '';
+                }
+            });
+
+            var form = document.querySelector('form');
+            form.addEventListener('submit', function (e) {
+                if (!manufacturers.includes(manufactorInput.value)) {
+                    e.preventDefault();
+                    errorMessage.textContent = 'Please select a valid manufacturer from the suggestions.';
+                    manufactorInput.focus();
+                } else {
+                    errorMessage.textContent = ''; // Clear error message if valid
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Vehicle Price Prediction</h1>
+        <form action="/predict" method="post">
+            <div class="form-group">
+                <label for="manufactor">Manufacturer:</label>
+                <input type="text" id="manufactor" name="manufactor" required>
+                <div id="error-message" class="error-message"></div>
+            </div>
+            <div class="form-group" id="modelInputContainer">
+                <label for="model">Model:</label>
+                <select id="model" name="model" required>
+                    <option value="">You did not choose a proper manufacturer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="Year">Year:</label>
+                <input type="number" id="Year" name="Year" min="1980" max="2024" required>
+            </div>
+            <div class="form-group">
+                <label for="Hand">Hand:</label>
+                <input type="number" id="Hand" name="Hand" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="Gear">Gear:</label>
+                <select id="Gear" name="Gear" required>
+                    <option value="אוטומטי">אוטומטי</option>
+                    <option value="טיפטרוניק">טיפטרוניק</option>
+                    <option value="ידנית">ידנית</option>
+                    <option value="רובוטי">רובוטי</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="capacity_Engine">Engine Capacity (cc):</label>
+                <input type="number" id="capacity_Engine" name="capacity_Engine" min="0"  max="10000" required>
+            </div>
+            <div class="form-group">
+                <label for="Engine_type">Engine Type:</label>
+                <select id="Engine_type" name="Engine_type" required>
+                    <option value="בנזין">בנזין</option>
+                    <option value="דיזל">דיזל</option>
+                    <option value="גז">גז</option>
+                    <option value="היברידי">היברידי</option>
+                    <option value="טורבו דיזל">טורבו דיזל</option>
+                    <option value="חשמלי">חשמלי</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="Prev_ownership">Previous Ownership:</label>
+                <select id="Prev_ownership" name="Prev_ownership" required>
+                    <option value="פרטית">פרטית</option>
+                    <option value="ליסינג">ליסינג</option>
+                    <option value="מונית">מונית</option>
+                    <option value="חברה">חברה</option>
+                    <option value="השכרה">השכרה</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="Curr_ownership">Current Ownership:</label>
+                <select id="Curr_ownership" name="Curr_ownership" required>
+                    <option value="פרטית">פרטית</option>
+                    <option value="ליסינג">ליסינג</option>
+                    <option value="מונית">מונית</option>
+                    <option value="חברה">חברה</option>
+                    <option value="השכרה">השכרה</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="Area">Area:</label>
+                <select id="Area" name="Area" required>
+                    <option value="גליל ועמקים">גליל ועמקים</option>
+                    <option value="חיפה וחוף הכרמל">חיפה וחוף הכרמל</option>
+                    <option value="עמק יזרעאל">עמק יזרעאל</option>
+                    <option value="קריות">קריות</option>
+                    <option value="טבריה והסביבה">טבריה והסביבה</option>
+                    <option value="עכו - נהריה">עכו - נהריה</option>
+                    <option value="כרמיאל והסביבה">כרמיאל והסביבה</option>
+                    <option value="מושבים בצפון">מושבים בצפון</option>
+                    <option value="רעננה - כפר סבא">רעננה - כפר סבא</option>
+                    <option value="נתניה והסביבה">נתניה והסביבה</option>
+                    <option value="רמת השרון - הרצליה">רמת השרון - הרצליה</option>
+                    <option value="מושבים בשרון">מושבים בשרון</option>
+                    <option value="חדרה ותושבי עמק חפר">חדרה ותושבי עמק חפר</option>
+                    <option value="פרדס חנה - כרכור">פרדס חנה - כרכור</option>
+                    <option value="הוד השרון והסביבה">הוד השרון והסביבה</option>
+                    <option value="זכרון - בנימינה">זכרון - בנימינה</option>
+                    <option value="אזור השרון והסביבה">אזור השרון והסביבה</option>
+                    <option value="תל אביב">תל אביב</option>
+                    <option value="חולון - בת ים">חולון - בת ים</option>
+                    <option value="ראשל&quot;צ והסביבה">ראשל"צ והסביבה</option>
+                    <option value="רמת גן - גבעתיים">רמת גן - גבעתיים</option>
+                    <option value="פתח תקווה והסביבה">פתח תקווה והסביבה</option>
+                    <option value="ראש העין והסביבה">ראש העין והסביבה</option>
+                    <option value="בני ברק">בני ברק</option>
+                    <option value="ישובים במרכז">ישובים במרכז</option>
+                    <option value="ירושלים והסביבה">ירושלים והסביבה</option>
+                    <option value="מודיעין והסביבה">מודיעין והסביבה</option>
+                    <option value="מושבים באזור ירושלים">מושבים באזור ירושלים</option>
+                    <option value="אשדוד - אשקלון">אשדוד - אשקלון</option>
+                    <option value="נס ציונה - רחובות">נס ציונה - רחובות</option>
+                    <option value="גדרה יבנה והסביבה">גדרה יבנה והסביבה</option>
+                    <option value="רמלה לוד">רמלה לוד</option>
+                    <option value="מושבים בשפלה">מושבים בשפלה</option>
+                    <option value="באר שבע והסביבה">באר שבע והסביבה</option>
+                    <option value="אילת והערבה">אילת והערבה</option>
+                    <option value="מושבים בדרום">מושבים בדרום</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="Km">Kilometers (Km):</label>
+                <input type="number" id="Km" name="Km" min="0"  max="400000" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Value Price</button>
+            </div>
+        </form>
+        <div id="result" class="prediction">{{ prediction_text }}</div>
+    </div>
+</body>
+</html>
